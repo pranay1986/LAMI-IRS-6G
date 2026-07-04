@@ -1,4 +1,4 @@
-# LAMI-IRS-6G-Reproducibility
+# LAMI-IRS-6G
 
 Reference reproducibility and reconstruction package for the manuscript:
 
@@ -193,14 +193,3 @@ The reference pipeline uses the following safety checks:
 5. **Fallback control:** invalid or uncertain decisions are replaced by hold-state or cached-safe control.
 
 ---
-
-## 6. Reproducibility note for manuscript/rebuttal
-
-Suggested wording for the revised manuscript:
-
-> To support reproducibility within the IEEE Communications Magazine page limit, we provide a supplementary artifact package containing prompt templates, semantic input-output schemas, closed-loop pseudocode, trustworthiness validation logic, latency/energy accounting scripts, and reference simulation code. The package reconstructs the controller-side evaluation trends under the assumptions described in the manuscript and does not claim an OTA IRS hardware implementation.
-
-Suggested wording for the response letter:
-
-> We prepared a dedicated supplementary reproducibility package. The package includes prompt templates, semantic JSON schemas, IRS control-vector definitions, closed-loop pseudocode, trustworthiness validation logic, simulation configuration files, latency/energy accounting scripts, and reference code for reconstructing the reported evaluation trends. We explicitly label the artifact as a reference/reconstruction package rather than a real IRS hardware or OTA implementation.
-
