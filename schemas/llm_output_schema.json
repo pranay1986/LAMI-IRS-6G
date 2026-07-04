@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LAMI LLM Control Output",
+  "type": "object",
+  "required": [
+    "control_mode",
+    "target_regions",
+    "phase_delta_code",
+    "confidence",
+    "fallback_required",
+    "reason_code"
+  ],
+  "properties": {
+    "control_mode": {
+      "type": "string",
+      "enum": [
+        "hold_state",
+        "selective_update",
+        "interference_suppression",
+        "coverage_recovery",
+        "fallback_safe"
+      ]
+    },
+    "target_regions": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "phase_delta_code": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "enum": [
+          -1,
+          0,
+          1
+        ]
+      }
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "fallback_required": {
+      "type": "boolean"
+    },
+    "reason_code": {
+      "type": "string"
+    },
+    "decision_fields": {
+      "type": "object"
+    }
+  }
+}

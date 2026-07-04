@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LAMI Semantic Input Descriptor",
+  "type": "object",
+  "required": [
+    "client_id",
+    "timestamp",
+    "measured_snr_db",
+    "snr_trend",
+    "interference_db",
+    "mobility_state",
+    "energy_state",
+    "priority_level",
+    "intent_scores",
+    "slm_confidence"
+  ],
+  "properties": {
+    "client_id": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "number"
+    },
+    "measured_snr_db": {
+      "type": "number"
+    },
+    "snr_trend": {
+      "type": "string",
+      "enum": [
+        "increasing",
+        "stable",
+        "decreasing",
+        "unknown"
+      ]
+    },
+    "interference_db": {
+      "type": "number"
+    },
+    "mobility_state": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "unknown"
+      ]
+    },
+    "energy_state": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "priority_level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "intent_scores": {
+      "type": "object",
+      "required": [
+        "coverage_recovery",
+        "interference_suppression",
+        "energy_saving"
+      ],
+      "properties": {
+        "coverage_recovery": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "interference_suppression": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "energy_saving": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "slm_confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "region_hint": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source": {
+      "type": "string"
+    }
+  }
+}

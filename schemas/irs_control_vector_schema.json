@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IRS Quantized Phase Control Vector",
+  "type": "object",
+  "required": [
+    "phase_bits",
+    "phase_codebook_rad",
+    "phase_indices"
+  ],
+  "properties": {
+    "phase_bits": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "phase_codebook_rad": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "phase_indices": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "amplitude": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "granularity": {
+      "type": "string",
+      "enum": [
+        "element",
+        "region"
+      ]
+    }
+  }
+}

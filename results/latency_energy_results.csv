@@ -1,0 +1,5 @@
+scheme,reasoning_type,energy_mj,latency_ms,notes,energy_reduction_vs_standalone_llm_percent,latency_reduction_vs_standalone_llm_percent
+Conventional IRS,lookup/static codebook,14.0,0.31,"lowest overhead, no adaptive semantic reasoning",25.70170610897084,20.3125
+DRL-based IRS,neural policy inference,22.0,0.85,adaptive but requires policy inference and convergence support,25.70170610897084,20.3125
+Standalone LLM-IRS,open-loop text-to-control LLM inference,36.34,1.28,sequential token reasoning over larger semantic prompt,25.70170610897084,20.3125
+LAMI,bounded SLM-LLM agentic control using compact descriptors,27.0,1.02,"compact JSON input/output, validation, selective update",25.70170610897084,20.3125
