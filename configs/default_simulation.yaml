@@ -1,0 +1,59 @@
+seed: 42
+
+network:
+  carrier_frequency_ghz: 6.0
+  transmit_power_dbm: 30.0
+  noise_floor_dbm: -90.0
+  path_loss_exponent: 2.4
+  reference_distance_m: 1.0
+  reference_path_loss_db: 46.0
+  receiver_noise_margin_db: 0.0
+  user_count: 25
+  distance_min_m: 10
+  distance_max_m: 200
+  distance_step_m: 10
+
+irs:
+  elements: 64
+  element_spacing_m: 0.025
+  phase_bits: 2
+  amplitude: 1.0
+  region_count: 8
+  max_changed_fraction_per_interval: 0.25
+  failure_rate_min: 0.10
+  failure_rate_max: 0.15
+
+channel:
+  model: rician
+  rician_k_db: 6.0
+  coherence_time_ms: 5.0
+  trials: 100
+  mobility_levels: [low, medium, high]
+
+interference:
+  burst_db: 5.0
+  burst_duration_ms: 100
+  burst_period_ms: 250
+
+controller:
+  slm_confidence_threshold: 0.65
+  llm_confidence_threshold: 0.75
+  fallback_mode: hold_or_cached_safe
+  semantic_descriptor_bytes: 128
+  memory_window: 5
+  prompt_modes: [zero_shot, few_shot, structured_cot]
+
+models:
+  slm_name: DistilBERT-style compact SLM
+  llm_name: GPT-J-6B reference LLM
+  slm_latency_ms: 0.21
+  llm_reasoning_latency_ms: 0.84
+  fusion_latency_ms: 0.02
+  validation_latency_ms: 0.04
+  semantic_uplink_latency_ms: 0.05
+  fpga_control_abstraction_latency_ms: 0.08
+
+output:
+  sample_data_dir: sample_data
+  results_dir: results
+  figures_dir: figures

@@ -1,0 +1,14 @@
+seed: 42
+irs_sizes: [64, 128, 256, 512, 1024]
+user_counts: [5, 10, 25, 50, 100]
+phase_bits: 2
+region_size: 8
+memory_window: 5
+base_llm_latency_ms: 0.84
+base_validation_latency_ms_for_64: 0.04
+base_fusion_latency_ms_for_25_users: 0.02
+base_memory_mb: 1800
+per_element_control_bytes: 4
+per_memory_record_bytes: 256
+results_dir: results
+figures_dir: figures

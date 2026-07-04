@@ -1,0 +1,33 @@
+seed: 42
+schemes:
+  Conventional IRS:
+    reasoning_type: lookup/static codebook
+    energy_mj: 14.0
+    latency_ms: 0.31
+    notes: lowest overhead, no adaptive semantic reasoning
+  DRL-based IRS:
+    reasoning_type: neural policy inference
+    energy_mj: 22.0
+    latency_ms: 0.85
+    notes: adaptive but requires policy inference and convergence support
+  Standalone LLM-IRS:
+    reasoning_type: open-loop text-to-control LLM inference
+    energy_mj: 36.34
+    latency_ms: 1.28
+    notes: sequential token reasoning over larger semantic prompt
+  LAMI:
+    reasoning_type: bounded SLM-LLM agentic control using compact descriptors
+    energy_mj: 27.0
+    latency_ms: 1.02
+    notes: compact JSON input/output, validation, selective update
+latency_breakdown_lami_ms:
+  edge_slm_inference: 0.21
+  semantic_uplink: 0.05
+  semantic_fusion: 0.02
+  llm_reasoning: 0.84
+  validation: 0.04
+  fpga_actuation_abstraction: 0.08
+reported_controller_side_latency_ms: 1.02
+full_control_path_latency_ms: 1.24
+results_dir: results
+figures_dir: figures
