@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+title: "LAMI-IRS-6G-Reproducibility"
+message: "If you use this repository, please cite the associated manuscript and Zenodo archive."
+type: software
+authors:
+  - family-names: Khan
+    given-names: Nishat Mahdiya
+  - family-names: Bhattacharya
+    given-names: Pronaya
+  - family-names: Zhang
+    given-names: Qiyang
+  - family-names: Donta
+    given-names: Praveen Kumar
+  - family-names: Gadekallu
+    given-names: Thippa Reddy
+repository-code: "https://github.com/[username]/LAMI-IRS-6G-Reproducibility"
+abstract: "Reference reproducibility and reconstruction package for Agentic Metasurface Intelligence for IRS in 6G Edge Networks."
+license: MIT
+version: 1.0.0
+date-released: 2026-07-04
+# doi: "10.5281/zenodo.xxxxxxx"  # Update after Zenodo archival.
