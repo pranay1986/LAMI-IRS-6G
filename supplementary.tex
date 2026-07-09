@@ -1,0 +1,342 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,array,xcolor}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage[compatible]{algpseudocode}
+\usepackage{listings}
+\usepackage{enumitem}
+\hypersetup{colorlinks=true,urlcolor=blue,citecolor=blue,linkcolor=blue}
+
+\lstdefinelanguage{json}{
+    basicstyle=\ttfamily\small,
+    numbers=none,
+    stepnumber=1,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    literate=
+     *{0}{{{0}}}{1}
+      {1}{{{1}}}{1}
+      {2}{{{2}}}{1}
+      {3}{{{3}}}{1}
+      {4}{{{4}}}{1}
+      {5}{{{5}}}{1}
+      {6}{{{6}}}{1}
+      {7}{{{7}}}{1}
+      {8}{{{8}}}{1}
+      {9}{{{9}}}{1}
+      {:}{{{:}}}{1}
+      {,}{{{,}}}{1}
+      {\{}{{{\{}}}{1}
+      {\}}{{{\}}}}{1}
+      {[}{{{[}}}{1}
+      {]}{{{]}}}{1},
+}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible,frame=single}
+
+\title{Supplementary Material for \textit{LAMI}: Implementation Details, Prompt Design, Trustworthiness, and Extended Evaluation}
+\author{Nishat Mahdiya Khan, Pronaya Bhattacharya, Qiyang Zhang,\\ Praveen Kumar Donta, Thippa Reddy Gadekallu}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Purpose and Scope}
+
+This supplementary material supports the article ``Agentic Metasurface Intelligence for IRS in 6G Edge Networks.'' It provides implementation-level details that cannot be fully included in the IEEE Communications Magazine main article because of the page limit. The material documents the controller-side \textit{LAMI} workflow, semantic input-output formats, prompt templates, closed-loop pseudocode, mathematical model, trustworthiness checks, fine-tuning assumptions, latency/energy accounting, scalability settings, and artifact organization.
+
+The accompanying repository is treated as the implementation and reproducibility codebase for the controller-side evaluation reported in the article. It includes configuration files, prompt files, JSON schemas, validation scripts, latency/energy accounting scripts, and result-generation scripts for SNR recovery, distance-dependent adaptation, scalability, and trustworthiness validation.
+
+No over-the-air IRS hardware experiment is claimed. The FPGA-assisted IRS actuation stage is represented as a bounded discrete command interface, and the external knowledge/context module is simulated through contextual metadata. This scope is consistent with the main article, where the evaluation is explicitly described as controller-side and simulation-based.
+
+\section{Repository and Execution}
+
+The implementation and reproducibility codebase is publicly available at:
+\begin{center}
+\url{https://github.com/pranay1986/LAMI-IRS-6G}
+\end{center}
+
+The complete workflow can be executed using:
+\begin{lstlisting}
+python scripts/run_all.py
+\end{lstlisting}
+
+The workflow generates channel/failure realizations, semantic descriptors, bounded IRS control outputs, validation records, latency/energy results, SNR recovery trends, distance-adaptation trends, and scalability estimates.
+
+\section{System Model and IRS Control Vector}
+
+Let $\mathcal{U}=\{1,\ldots,U\}$ denote the edge clients and let $N$ denote the number of IRS reflecting elements. The IRS phase vector at control interval $t$ is
+\begin{equation}
+\boldsymbol{\phi}_{t}=[\phi_{1,t},\ldots,\phi_{N,t}]^{T},\quad
+\phi_{n,t}=\beta_{n,t}e^{j\theta_{n,t}},
+\end{equation}
+where $0\leq\beta_{n,t}\leq1$ and $\theta_{n,t}\in\mathcal{Q}_{B}$. The $B$-bit phase codebook is
+\begin{equation}
+\mathcal{Q}_{B}=\left\{0,\frac{2\pi}{2^B},\ldots,\frac{2\pi(2^B-1)}{2^B}\right\}.
+\end{equation}
+The main evaluation uses $N=64$ elements. For bounded control, the IRS is grouped into $R=8$ regions, with each region containing $8$ elements. Therefore, the LLM output operates at the region level through an $R$-dimensional phase-update code, while the validator maps accepted region-level updates to element-level IRS commands. The scalability evaluation considers $N\in\{64,128,256,512,1024\}$.
+
+The effective cascaded channel for user $u$ is represented as
+\begin{equation}
+h^{\mathrm{eff}}_{u,t}=h_{d,u,t}+\mathbf{h}^{H}_{r,u,t}\mathrm{diag}(\boldsymbol{\phi}_{t})\mathbf{G}_{t},
+\end{equation}
+where $h_{d,u,t}$ is the direct link, $\mathbf{G}_{t}$ is the BS--IRS channel, and $\mathbf{h}_{r,u,t}$ is the IRS--user channel. The SNR is
+\begin{equation}
+\gamma_{u,t}=\frac{P_t|h^{\mathrm{eff}}_{u,t}|^2}{\sigma^2+I_{u,t}}.
+\end{equation}
+A compact control objective is
+\begin{equation}
+\max_{\boldsymbol{\phi}_{t}}\sum_{u\in\mathcal{U}}w_u\log_2(1+\gamma_{u,t})-\lambda_EE_t-\lambda_LL_t-\lambda_{\Delta}\|\boldsymbol{\phi}_{t}-\boldsymbol{\phi}_{t-1}\|_0.
+\end{equation}
+The final term penalizes unnecessary global IRS updates and motivates selective element/region reconfiguration.
+
+\section{Semantic Input and Output Formats}
+
+Each edge SLM observes a local vector
+\begin{equation}
+\mathbf{z}_{u,t}=[\gamma_{u,t},I_{u,t},E_{u,t},v_{u,t},q_{u,t},p_{u,t}],
+\end{equation}
+including SNR, interference, energy state, mobility indicator, queue/load, and priority.
+
+\subsection{Semantic Input JSON}
+\begin{lstlisting}[language=json]
+{
+  "client_id": "u_007",
+  "timestamp": 128.40,
+  "measured_snr_db": 16.8,
+  "snr_trend": "decreasing",
+  "interference_db": 5.0,
+  "mobility_state": "medium",
+  "energy_state": 0.71,
+  "priority_level": 2,
+  "intent_scores": {
+    "coverage_recovery": 0.82,
+    "interference_suppression": 0.64,
+    "energy_saving": 0.31
+  },
+  "slm_confidence": 0.87,
+  "region_hint": 4
+}
+\end{lstlisting}
+
+\subsection{Bounded LLM Output JSON}
+\begin{lstlisting}[language=json]
+{
+  "control_mode": "selective_update",
+  "target_regions": [3, 4],
+  "phase_delta_code": [0, 0, 0, 1, -1, 0, 0, 0],
+  "confidence": 0.91,
+  "fallback_required": false,
+  "reason_code": "localized_interference_recovery"
+}
+\end{lstlisting}
+
+\section{Prompt Templates}
+
+The LLM agent receives compact semantic descriptors and produces bounded JSON outputs. Prompting changes the reasoning path but not the final validation path. All generated outputs must satisfy the same output schema before actuation.
+
+\subsection{Zero-shot Prompt}
+\begin{lstlisting}
+You are an IRS control agent. Given the compact semantic descriptors from edge SLMs, identify whether the IRS should hold the current state, suppress interference, recover coverage, or apply a selective region update. Return only a valid JSON control object with target regions, phase delta code, confidence, fallback flag, and reason code.
+\end{lstlisting}
+
+\subsection{Few-shot Prompt}
+\begin{lstlisting}
+You are an IRS control agent. Use the following examples of semantic conditions and valid IRS actions to guide the current decision. Do not produce free-form explanation. Return only the bounded JSON control object.
+
+Example:
+Input: SNR decreasing near client u_003; interference high near region 4; SLM confidence 0.86.
+Output: {"control_mode":"selective_update","target_regions":[4],"phase_delta_code":[0,0,0,1,0,0,0,0],"confidence":0.88,"fallback_required":false,"reason_code":"localized_interference_recovery"}
+
+Now process the current descriptor set and return the valid JSON output.
+\end{lstlisting}
+
+\subsection{Structured CoT Prompt}
+\begin{lstlisting}
+You are an IRS control agent. Internally consider: (1) affected clients, (2) dominant cause, (3) target IRS region, (4) feasible phase update, and (5) whether fallback is required. Do not output the reasoning steps. Return only the final bounded JSON control object.
+\end{lstlisting}
+
+\section{Closed-loop Agentic Workflow}
+\begin{algorithm}[h]
+\caption{Closed-loop LAMI reasoning and IRS actuation}
+\begin{algorithmic}[1]
+\State Initialize valid IRS phase vector $\boldsymbol{\theta}_0$ and memory buffer $\mathcal{M}_0$.
+\For{each control interval $t$}
+    \State Each edge SLM observes local state $\mathbf{z}_{u,t}$.
+    \State Generate semantic descriptor $\mathbf{s}_{u,t}$ and confidence $c_{u,t}$.
+    \State Aggregate descriptors using confidence-priority weighting.
+    \State Retrieve bounded memory $\mathcal{M}_{t-K:t-1}$.
+    \State Generate candidate control action $\hat{a}_t$ as bounded JSON.
+    \State Validate $\hat{a}_t$ using schema, phase, sparsity, confidence, and passivity checks.
+    \If{validation passes}
+        \State Apply IRS update through the control abstraction.
+    \Else
+        \State Apply fallback controller: hold state, cached-safe profile, or conventional codebook.
+    \EndIf
+    \State Observe post-actuation SNR, latency, and energy; update memory.
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+The bounded memory is
+\begin{equation}
+\mathcal{M}_{t}=\{(\mathbf{S}_{\tau},\boldsymbol{\theta}_{\tau},\gamma_{\tau},L_{\tau},E_{\tau},\eta_{\tau})\}_{\tau=t-K}^{t-1}.
+\end{equation}
+
+\section{Trustworthiness and Safety Checks}
+
+The system uses a four-stage safety envelope. First, low-confidence SLM descriptors are down-weighted. Second, conflicting semantic inputs are aggregated through normalized confidence-priority weights:
+\begin{equation}
+\alpha_{u,t}=\frac{c_{u,t}p_{u,t}}{\sum_{v\in\mathcal{U}}c_{v,t}p_{v,t}}.
+\end{equation}
+Third, LLM outputs are accepted only when confidence exceeds $\tau_{\mathrm{LLM}}$. Fourth, the physical validator enforces
+\begin{equation}
+\theta_{n,t}\in\mathcal{Q}_{B},\quad 0\leq\beta_{n,t}\leq1,\quad \|\boldsymbol{\theta}_{t}-\boldsymbol{\theta}_{t-1}\|_0\leq\Delta_{\max}.
+\end{equation}
+Invalid or uncertain actions trigger fallback control.
+
+\begin{center}
+\begin{tabular}{p{3.4cm}p{4.5cm}p{5.0cm}}
+\toprule
+Risk source & Detection mechanism & Mitigation \\
+\midrule
+SLM error/noisy summary & SLM confidence and semantic consistency & Down-weight or discard low-confidence descriptors \\
+LLM hallucination & Structured output schema & Reject free-form, incomplete, or schema-invalid output \\
+Physically invalid action & Phase-state, amplitude, and update-budget checks & Accept only hardware-supported IRS commands \\
+Unsafe/uncertain decision & LLM confidence and fallback flag & Retain previous valid IRS state or cached-safe profile \\
+Conflicting edge inputs & Confidence-priority aggregation & Resolve conflicts using normalized confidence and service priority \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Model and Fine-tuning Profile}
+
+The IRS-side reasoning model is GPT-J-6B, selected because of its open-weight availability and reproducibility. The model is not trained from scratch. It is instruction-tuned using approximately $14,000$ synthetic state--action pairs generated from DRL-based IRS optimization trajectories. Each sample maps a compact channel-state descriptor to a discrete IRS phase-control decision.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Item & Setting \\
+\midrule
+Main LLM & GPT-J-6B \\
+Edge SLM & DistilBERT-style SLM, approximately 82M parameters \\
+Synthetic samples & 14,000 \\
+Train/validation/test split & 70/15/15 \\
+Optimizer & AdamW \\
+Learning rate & $2\times10^{-5}$ \\
+Weight decay & 0.01 \\
+Warm-up ratio & 0.05 \\
+Epochs & 3 \\
+Effective batch size & 32 \\
+Input length & 256 tokens \\
+Output length & 128 tokens \\
+Inference mode & FP16 with 4-bit attention-layer quantization \\
+Decoding & Greedy/JSON-only output \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The SLMs are not retrained at every control interval. Short-term adaptation is handled through descriptor confidence, recent-state memory, post-actuation feedback, and fallback control. Offline recalibration may be required under persistent distribution shift, such as a new deployment topology, changed mobility regime, different IRS size, or altered channel statistics.
+
+\section{Latency and Energy Accounting}
+
+The controller-side decision latency reported in the main article is measured from the availability of compact semantic descriptors to the emission of a validated IRS control directive. It includes descriptor fusion, IRS-side LLM reasoning, output validation, and command preparation. Edge SLM inference is profiled separately and can execute in parallel across edge nodes.
+
+The controller-side latency is represented as
+\begin{equation}
+T_{\mathrm{ctrl}}=T_{\mathrm{fusion}}+T_{\mathrm{LLM}}+T_{\mathrm{validation}}+T_{\mathrm{cmd}}.
+\end{equation}
+
+A conservative reconstructed control path may additionally include edge SLM abstraction, descriptor transfer, and FPGA command abstraction:
+\begin{equation}
+T_{\mathrm{path}}=T_{\mathrm{SLM}}+T_{\mathrm{uplink}}+T_{\mathrm{fusion}}+T_{\mathrm{LLM}}+T_{\mathrm{validation}}+T_{\mathrm{FPGA}}.
+\end{equation}
+
+The full deployment latency would further include sensing-chain delay, fronthaul or side-link transmission, real FPGA transfer, IRS bias-network settling, and over-the-air feedback. These deployment-specific terms are not claimed as part of the reported controller-side latency.
+
+Energy per decision is computed as
+\begin{equation}
+E_{\mathrm{decision}}=\int_{t_0}^{t_1}\left(P_{\mathrm{active}}(t)-P_{\mathrm{idle}}\right)dt.
+\end{equation}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Component & Value & Note \\
+\midrule
+Edge SLM inference & 0.21 ms & Profiled separately; parallel edge execution \\
+Descriptor transfer & 0.05 ms & Compact descriptor, $<128$ bytes \\
+Semantic fusion & 0.02 ms & Confidence-priority aggregation \\
+IRS-side LLM reasoning & 0.84 ms & Bounded GPT-J control inference \\
+Validation & 0.04 ms & Schema, confidence, phase, fallback checks \\
+FPGA abstraction & 0.08 ms & Command abstraction, not real FPGA timing \\
+\midrule
+Reported controller-side latency & 1.02 ms & Used for comparison in the main article \\
+Conservative reconstructed path & 1.24 ms & Includes SLM/uplink/FPGA abstraction terms \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Simulation Parameters}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Parameter & Value \\
+\midrule
+Carrier frequency & 6 GHz \\
+Transmit power & 30 dBm \\
+Noise floor & $-90$ dBm \\
+Path-loss exponent & 2.4 \\
+IRS elements & 64 \\
+Element spacing & 2.5 cm \\
+Channel model & Rician fading \\
+Rician K-factor & 6 dB \\
+IRS failure rate & 10--15\% \\
+Interference burst & 5 dB for 100 ms \\
+Distance range & 10--200 m \\
+Default realizations in artifact & 100 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Controller-side Result Summary}
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Controller & Energy/decision & Decision latency & Interpretation \\
+\midrule
+Conventional IRS & 14.0 mJ & 0.31 ms & Lowest overhead, limited adaptivity \\
+DRL-based IRS & 22.0 mJ & 0.85 ms & Adaptive, training-dependent \\
+Standalone LLM-IRS & 36.34 mJ & 1.28 ms & Semantic but open-loop and high overhead \\
+\textit{LAMI} & 27.0 mJ & 1.02 ms & Bounded SLM--LLM control with validation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Relative to the standalone LLM-IRS baseline, \textit{LAMI} reduces energy per decision by $25.7\%$ and controller-side decision latency by $20.3\%$ under the evaluated simulation setup. These gains are not claimed against all possible lightweight transformer or hybrid optimization controllers.
+
+\section{Artifact Repository Organization}
+
+The accompanying repository is organized as follows:
+
+\begin{itemize}[leftmargin=*]
+    \item \texttt{configs/}: simulation, channel, scalability, and latency/energy configuration files.
+    \item \texttt{prompts/}: zero-shot, few-shot, structured-CoT, validation, and fallback prompts.
+    \item \texttt{schemas/}: semantic input, LLM output, and IRS control-vector JSON schemas.
+    \item \texttt{algorithms/}: closed-loop workflow, trustworthiness pipeline, and fallback-control documentation.
+    \item \texttt{scripts/}: Python scripts for channel generation, semantic descriptor generation, LAMI controller execution, validation, latency/energy accounting, SNR recovery, distance adaptation, and scalability analysis.
+    \item \texttt{sample\_data/}: sample semantic inputs and IRS control outputs.
+    \item \texttt{results/}: generated CSV result files.
+    \item \texttt{figures/}: generated figures for latency/energy, SNR recovery, distance adaptation, and scalability trends.
+\end{itemize}
+
+\section{Limitations and Non-claims}
+
+This supplementary package documents the controller-side implementation and reproducibility workflow for the \textit{LAMI} evaluation. It does not claim real IRS hardware deployment, over-the-air testing, live external API use, or production FPGA timing. The FPGA-assisted actuation stage is modeled as a bounded discrete command abstraction, and external context is represented through simulated metadata.
+
+Real deployment requires IRS testbed validation, measured channel traces, hardware timing characterization, secure semantic descriptor exchange, multi-panel coordination, and regulatory-compliant edge integration. These limitations are consistent with the main article, where \textit{LAMI} is presented as a controller-side framework for trustworthy IRS reasoning rather than a complete commercial deployment blueprint.
+
+\end{document}
